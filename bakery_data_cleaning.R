@@ -30,16 +30,16 @@ extractAddress <- function(x){
 
 ## Delineate some special categories ----
 
-other_city <-c("7 Muffins a Day", "Anna B’s Gluten Free", "Beaunuts", "Buttermilk Bake Shop",
+other_city <-c("7 Muffins a Day", "Anna B's Gluten Free", "Beaunuts", "Buttermilk Bake Shop",
                "River City Chocolate", "Sugar Shack", "Sweets by Keet", "The Treat Shop",
                "Williams Bakery", "Wonder City Bakery")
 
 multi_location <- c("Early Bird Biscuit Company", "The Treat Shop", "Williams Bakery", "Coco + Hazel",
                     "Country Style Donuts", "Crumbl Cookies", "Sugar Shack")
 
-online <- c("Arley Cakes", "Axelsdotter", "The Weekly Bake")
+online <- c("Arley Cakes", "Axelsdotter", "JC Desserts", "The Weekly Bake")
 
-farmer_market <- c("Norwood Cottage Bakery", "Poor Georgie’s Bake Shop")
+farmer_market <- c("Norwood Cottage Bakery", "Poor Georgie’s Bake Shop")  # note curly apostrophe
 
 appt_only <- c("Keya & Co. Baking", "Morsels")
 
@@ -48,8 +48,9 @@ subset_list <- c("Minglewood Bake Shop", "Mixing Bowl Bakery", "Montana Gold Bre
                  "Panaderia El Globo", "Sub Rosa Bakery")                                 # numerals in the bakery name
 
 abbrev_street <- c("Beaunuts", "Brecotea Baking Studio", "Cameo Cakery and Cafe", "Can Can Brasserie", 
-                   "Carytown Cupcakes", "Europa Crust", "Fat Rabbit", "Flour Garden Bakery", "Frostings", 
-                   "Idle Hands Bread Company", "JC Desserts", "JJ’s Makery", "Keya & Co. Baking", "Lebanese Bakery")
+                   "Carytown Cupcakes", "Claudia’s Bake Shop", "Europa Crust", "Fat Rabbit", "Flour Garden Bakery", 
+                   "Frostings", "Idle Hands Bread Company", "Keya & Co. Baking", "Lebanese Bakery", "Sunflower Gardenz",
+                   "Up All Night Bakery") # note the curly apostrophe in Claudia's
 
 
 ## Isolate bakeries' addresses ----
@@ -155,8 +156,6 @@ num_descrip$address[[2]] <- "8540 Patterson Ave., Richmond, VA"
 num_descrip$address[[3]] <- "3543 W. Cary St., Richmond, VA"
 num_descrip$address[[4]] <- "5701 Hull St., Richmond, VA"
 num_descrip$address[[5]] <- "620 N. 25th St., Richmond, VA"
-num_descrip$address[[6]] <- "1810 Powhatan St., Richmond, VA"
-num_descrip$address[[7]] <- "5411 Lakeside Ave., Richmond, VA"
 
 
 ### Clean up num_descrip description ----
@@ -173,6 +172,32 @@ num_descrip %>%
 
 ## Clean up descriptions for bakeries with abbreviated street ----
 
+abbrev_bakery <- bakery_table %>%
+  filter( bakery_name %in% abbrev_street )
+
+abbrev_bakery$info <- str_replace(abbrev_bakery$info, "\\s[0-9].+", "")    # remove digits/text after whitespace+digits
+
+
+abbrev_bakery$info[[7]] <- gsub(" opening in early April", "", abbrev_bakery$info[[7]]) # Claudia's 
+abbrev_bakery$address[[7]] <- "3027 W. Cary St., Richmond, VA"
+
+abbrev_bakery$info[[9]] <- gsub(" Opening in April in Union Hill.", "", abbrev_bakery$info[[9]])  # Fat Rabbit
+
+abbrev_bakery$info[[14]] <- gsub("1810 Powhatan St.", "", abbrev_bakery$info[[14]]) # Sunflower Gardenz
+abbrev_bakery$address[[14]] <- "1810 Powhatan St., Richmond, VA"
+
+abbrev_bakery$address[[15]] <- "5411 Lakeside Ave., Richmond, VA" # Up All Night
+
+
+### Save a copy of abbrev_bakery ----
+
+abbrev_bakery %>% 
+  select( -c(X) ) %>%
+  write.csv( paste0(path, "/output/abbrev_bakery_data.csv") )
+
+
+## Clean up bakery_table descriptions ----
+
 bakery_table$info <- str_replace(bakery_table$info, "\\s[0-9].+", "")    # remove any character after whitespace+digits
 
 
@@ -183,9 +208,8 @@ bakery_table <- bind_rows(bakery_table, multi_bakery) %>%
   filter( !bakery_name %in% abbrev_street) %>%
   bind_rows( abbrev_bakery ) %>%
   bind_rows( num_descrip ) %>%
-  select( -c(X) ) %>%                                 # remove count column and X column (from reading in csv)
+  select( -c(X, count) ) %>%                                  # remove count column and X column (from reading in csv)
   filter( !bakery_name %in% multi_location ) %>%              # remove rows with multiple addresses in one field
-  filter( bakery_name != "Claudia’s Bake Shop") %>%           # remove not-yet-open bakery
   arrange( bakery_name )                                      # arrange alphabetically by name
 
 
@@ -225,9 +249,13 @@ bakery_table <- bakery_table %>% mutate(
 bakery_table <- bakery_table %>% mutate( 
   Delivery = case_when( 
     str_detect(info, "deliver") ~ "Yes",
+    str_detect(info, "deliveries") ~ "Yes",
+    str_detect(info, "delivery") ~ "Yes",
     TRUE ~ "No"
   )
 )
+
+bakery_table$`Delivery` <- ifelse(bakery_table$`Bakery Name` == "Anna B’s Gluten Free", "Yes", bakery_table$`Delivery`) # note curly apostrophe
 
 
 bakery_table <- bakery_table %>% mutate( 

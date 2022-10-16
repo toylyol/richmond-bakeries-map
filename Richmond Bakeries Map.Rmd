@@ -115,7 +115,7 @@ Column {data-width=175}
     label = "Appointment Only",
     sharedData = shared,
     group = ~`Appointment Only`,
-    inline = FALSE                # display options vertically instead of horizontally
+    inline = TRUE                # display options horizontally instead of vertically
   )
 
   filter_checkbox(
@@ -123,7 +123,7 @@ Column {data-width=175}
     label = "Dairy-Free",
     sharedData = shared,
     group = ~`Dairy-Free`,
-    inline = FALSE
+    inline = TRUE
   )
 
   filter_checkbox(
@@ -131,7 +131,7 @@ Column {data-width=175}
     label = "Delivery",
     sharedData = shared,
     group = ~Delivery,
-    inline = FALSE
+    inline = TRUE
   )
 
   filter_checkbox(
@@ -139,7 +139,7 @@ Column {data-width=175}
     label = "Farmer's Market",
     sharedData = shared,
     group = ~`Farmer's Market`,
-    inline = FALSE
+    inline = TRUE
   )
 
   filter_checkbox(
@@ -147,7 +147,7 @@ Column {data-width=175}
     label = "Gluten-Free",
     sharedData = shared,
     group = ~`Gluten-Free`,
-    inline = FALSE
+    inline = TRUE
   )
 
   filter_checkbox(
@@ -155,7 +155,7 @@ Column {data-width=175}
     label = "Online",
     sharedData = shared,
     group = ~Online,
-    inline = FALSE
+    inline = TRUE
   )
 
   filter_checkbox(
@@ -163,7 +163,7 @@ Column {data-width=175}
     label = "Vegan",
     sharedData = shared,
     group = ~Vegan,
-    inline = FALSE
+    inline = TRUE
   )
 
 ```
@@ -207,7 +207,7 @@ leaflet( data = shared, options = tileOptions(minZoom = 9, maxZoom = 19) ) %>%
 
 ```
 
-### Reactable
+### Reactable   *(Columns can be resized.)*
 
 ```{r searchable-reactable}
 
@@ -219,7 +219,7 @@ reactable(data = shared, searchable = TRUE, resizable = TRUE, wrap = TRUE )
 **Info**
 ===================================== 
 
-### Overview
+### Overview {data-height=125}
 
 - This flexdashboard, was designed to practice web scraping, geocoding, and interactive mapping. It was developed by Toyin L. Ola.
 
@@ -227,19 +227,31 @@ reactable(data = shared, searchable = TRUE, resizable = TRUE, wrap = TRUE )
 
 ### Navigation Tips
 
-- Hover over a map marker to see the name of the bakery. 
-
-- Click on a map marker to open a popup displaying the bakery name, description, and address. 
-
-- The reactable is searchable, and the columns can be resized.
+Filters:
 
 - Use the filters in the left-hand sidebar to filter the map and table. 
 
 - There are filters for bakeries that offer baked goods that are dairy-free, gluten-free, and vegan. There are also filters for bakeries that deliver or are appointment-only. Filters for online and farmer's market bakeries without physical locations are also included. The special category filters are based on the narrative provided in *Richmond Magazine* as of March 2022, so the bakeries' offerings may have changed. Contact the bakeries for the latest information.
 
+Map:
+
+- Hover over a map marker to see the name of the bakery. 
+
+- Click on a map marker to open a popup displaying the bakery name, description, and address. 
+
+- There is an option to view the map in fullscreen.
+
 - For bakeries without physical addresses, generic latitude and longitude for Richmond VA (37.541290, -77.434769) were used.
 
-### Resources
+Reactable:
+
+- The reactable is searchable. See the search box in the upper right-hand corner of the table.
+
+- The reactable columns can be resized. Hover over a column header until the cursor changes, and, then, click and drag to resize.
+
+- The reactable columns can be sorted in descending or ascending order. Click the column header of interest.
+
+### Resources {data-height=250}
 
 - This project was inspired by Silvia Canelón's excellent R-Ladies Philly workshop on webscraping, geocoding,
 and interactive mapping. See all materials, including presentation slides and a RStudio Cloud project, in [this GitHub repository](https://github.com/spcanelon/2022-ccd-sips). The workshop recording is available on [YouTube](https://www.youtube.com/watch?v=tcfHr0oeOMw).
