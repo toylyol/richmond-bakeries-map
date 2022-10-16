@@ -1,0 +1,253 @@
+---
+title: "Richmond, Virginia Metropolitan Area Bakeries"
+date: "October 2022"
+output:
+  flexdashboard::flex_dashboard:
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+
+source("all_custom_functions.R")
+
+usingPackages("here", "tidyverse", "robotstxt", "crosstalk", "tidygeocoder", "leaflet", "leaflet.extras", "reactable", "flexdashboard")
+
+library(here)
+library(tidyverse)
+library(crosstalk)
+library(tidygeocoder)
+library(leaflet)
+library(leaflet.extras)
+library(reactable)
+library(flexdashboard)
+
+```
+
+```{r scrape-web, include = FALSE, eval = FALSE}
+
+# Change chunk option to eval = TRUE in order to source a R script to scrape the web for the bakeries' data in lieu of loading # data that has already been scraped.
+
+source("bakery_web_scraping.R")
+
+```
+
+```{r clean-data, include = FALSE, eval = FALSE}
+
+# Change chunk option to eval = TRUE in order to source a R script to clean data instead of loading data that has already been
+# cleaned.
+
+source("bakery_data_cleaning.R")
+
+```
+
+```{r geocode-data, include = FALSE, eval = FALSE}
+
+# Change chunk option to eval = TRUE in order to source script to geocode data instead of loading data in next chunk.
+
+source("bakery_data_geocoding.R")
+
+```
+
+```{r load-clean-and-geocoded-data, include = FALSE}
+
+here()
+
+path <- here()
+
+bakery_table <- read.csv( paste0(path,"/output/geocoded_bakery_table.csv") )
+
+bakery_table <- bakery_table  %>% select( -c("X") ) %>%  # remove "X" column from reading in csv
+  rename( `Bakery Name` = Bakery.Name,                   # fix column names from reading in csv
+          `Gluten-Free` = Gluten.Free, 
+          `Appointment Only` = Appointment.Only,
+          `Dairy-Free` = Dairy.Free, 
+          `Multiple Locations` = Multiple.Locations,
+          `Farmer's Market` = Farmer.s.Market,
+  )
+
+```
+
+```{r shared-data, include = FALSE}
+
+# Add generic lat, long since leaflet cannot handle NA and SharedData cannot be filtered
+
+bakery_table$Latitude <- ifelse(is.na(bakery_table$Latitude), "37.541290", bakery_table$Latitude )
+
+bakery_table$Longitude <- ifelse(is.na(bakery_table$Longitude), "-77.434769", bakery_table$Longitude )
+
+
+# Ensure lat and long are numeric
+
+bakery_table$Latitude <- as.numeric(bakery_table$Latitude)
+
+bakery_table$Longitude <- as.numeric(bakery_table$Longitude)
+
+
+# Make a crosstalk shared dataset
+
+shared <- bakery_table %>% crosstalk::SharedData$new()
+
+```
+
+```{css, include = FALSE}
+
+@import url('https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+```
+
+
+**Data**
+=====================================  
+
+
+Column {data-width=175}
+-------------------------------------
+
+### Filters
+
+```{r filters}
+
+
+  filter_checkbox(
+    id = "appt-only",
+    label = "Appointment Only",
+    sharedData = shared,
+    group = ~`Appointment Only`,
+    inline = FALSE                # display options vertically instead of horizontally
+  )
+
+  filter_checkbox(
+    id = "dairy-free",
+    label = "Dairy-Free",
+    sharedData = shared,
+    group = ~`Dairy-Free`,
+    inline = FALSE
+  )
+
+  filter_checkbox(
+    id = "delivery",
+    label = "Delivery",
+    sharedData = shared,
+    group = ~Delivery,
+    inline = FALSE
+  )
+
+  filter_checkbox(
+    id = "market",
+    label = "Farmer's Market",
+    sharedData = shared,
+    group = ~`Farmer's Market`,
+    inline = FALSE
+  )
+
+  filter_checkbox(
+    id = "gluten-free",
+    label = "Gluten-Free",
+    sharedData = shared,
+    group = ~`Gluten-Free`,
+    inline = FALSE
+  )
+
+  filter_checkbox(
+    id = "online",
+    label = "Online",
+    sharedData = shared,
+    group = ~Online,
+    inline = FALSE
+  )
+
+  filter_checkbox(
+    id = "vegan",
+    label = "Vegan",
+    sharedData = shared,
+    group = ~Vegan,
+    inline = FALSE
+  )
+
+```
+
+
+Column {data-width=825}
+-------------------------------------
+
+### Map
+
+```{r map}
+
+# Design custom popup
+
+popInfoCircles <- paste(
+  "<h2 style='font-family: Karla, sans-serif; font-size: 1.6em; color:#43464C;'>",bakery_table$`Bakery Name`, "</h2>",
+  "<p style='font-family: Karla, sans-serif; font-style: italic; font-size: 1.5em; color:#9197A6;'>",     
+  bakery_table$Description, "</p>",
+  "<p style='font-family: Karla, sans-serif; font-weight: normal; text-align: center; font-size: 1em; 
+  color:#9197A6;'>", bakery_table$Address, "</p>"
+)
+
+## to include a hyperlink to each bakery's website, use "<h2 style='font-family: Karla, sans-serif; font-size: 1.6em; color:#43464C;'>", "<a href=", bakery_table$Hyperlink, ">", bakery_table$`Bakery Name`, "</a></h2>"
+
+
+# Make leaflet map
+
+leaflet( data = shared, options = tileOptions(minZoom = 9, maxZoom = 19) ) %>%
+  addCircles( lat = ~Latitude,          # add marker
+              lng = ~Longitude,
+              fillColor = "#009E91",    # customize marker
+              popup = popInfoCircles,   # customize popup
+              label = ~`Bakery Name`,
+              labelOptions = labelOptions( style = list("font-family" = "Karla, sans-serif","font-size" = "1.2em") )
+            ) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%    # add background map
+  setView(mean(bakery_table$Longitude), 
+          mean(bakery_table$Latitude), 
+          zoom = 9) %>%
+  leaflet.extras::addFullscreenControl()
+
+```
+
+### Reactable
+
+```{r searchable-reactable}
+
+reactable(data = shared, searchable = TRUE, resizable = TRUE, wrap = TRUE )
+
+```
+
+
+**Info**
+===================================== 
+
+### Overview
+
+- This flexdashboard, was designed to practice web scraping, geocoding, and interactive mapping. It was developed by Toyin L. Ola.
+
+- The data were scraped from a March 28, 2022 *Richmond Magazine* [article](https://richmondmagazine.com/restaurants-in-richmond/richmond-area-bakeries/) written by Eileen Mellon.
+
+### Navigation Tips
+
+- Hover over a map marker to see the name of the bakery. 
+
+- Click on a map marker to open a popup displaying the bakery name, description, and address. 
+
+- The reactable is searchable, and the columns can be resized.
+
+- Use the filters in the left-hand sidebar to filter the map and table. 
+
+- There are filters for bakeries that offer baked goods that are dairy-free, gluten-free, and vegan. There are also filters for bakeries that deliver or are appointment-only. Filters for online and farmer's market bakeries without physical locations are also included. The special category filters are based on the narrative provided in *Richmond Magazine* as of March 2022, so the bakeries' offerings may have changed. Contact the bakeries for the latest information.
+
+- For bakeries without physical addresses, generic latitude and longitude for Richmond VA (37.541290, -77.434769) were used.
+
+### Resources
+
+- This project was inspired by Silvia Canelón's excellent R-Ladies Philly workshop on webscraping, geocoding,
+and interactive mapping. See all materials, including presentation slides and a RStudio Cloud project, in [this GitHub repository](https://github.com/spcanelon/2022-ccd-sips). The workshop recording is available on [YouTube](https://www.youtube.com/watch?v=tcfHr0oeOMw).
+
+- The rvest [chapter](https://dcl-wrangle.stanford.edu/rvest.html) of the companion ebook for Stanford's Data Challenge Lab provided invaluable tips for easily determining the desired CCS selector(s) to scrape the webpage of interest.
+
+- Shannon Pigelli's June 2022 [tutorial on purrr](https://www.pipinghotdata.com/talks/2022-06-08-iterating-well-with-purrr/) on her website Piping Hot Data greatly assisted in wrangling the scraped bakery data.
+
+- Matt Dray has awesome examples of flexdashboard development using the crosstalk package in [this GH repo](https://github.com/matt-dray/earl18-crosstalk).
+
+- Meghan Harris (The Tidy Trekker) has a terrific [tutorial](https://www.thetidytrekker.com/post/dull-dashboards) on customizing and styling flexdashboards.
